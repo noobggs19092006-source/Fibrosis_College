@@ -293,7 +293,8 @@ def extra_figures(tr, te, X_train, cols):
     # Figure 17: MI Distribution
     print("Calculating MI for Figure 17...")
     y_train = tr['pIC50'].values
-    mi = mutual_info_regression(X_train, y_train, random_state=42)
+    seed = config['pipeline'].get('global_seed', 42)
+    mi = mutual_info_regression(X_train, y_train, random_state=seed)
     top_idx = np.argsort(mi)[::-1][:20]
     
     plt.figure(figsize=(7, 5))

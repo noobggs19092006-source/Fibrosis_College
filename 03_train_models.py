@@ -79,7 +79,7 @@ def train_asnn(X_train, y_train, X_val, y_val, is_class, config, lr, dropout):
     model.load_state_dict(best_state)
     return model, best_val_loss, history_train, history_val
 
-def build_datasets(is_class):
+def build_datasets(is_class, seed):
     tr = pd.read_csv("train_processed.csv")
     va = pd.read_csv("val_processed.csv")
     
@@ -90,7 +90,7 @@ def build_datasets(is_class):
     Xv, yv = va.drop(columns=cols).values.astype(np.float32), va['Label'].values if is_class else va['pIC50'].values
     
     if is_class and SMOTETomek is not None:
-        Xt, yt = SMOTETomek(random_state=42).fit_resample(Xt, yt)
+        Xt, yt = SMOTETomek(random_state=seed).fit_resample(Xt, yt)
         
     return Xt, yt, Xv, yv
 
@@ -99,12 +99,19 @@ def main():
     logging.basicConfig(filename=config['pipeline']['log_file'], level=logging.INFO)
     logging.info("Initializing Phase 3 Models Tuning & ASNN generation")
     
+    seed = config['pipeline'].get('global_seed', 42)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
     os.makedirs(config['pipeline']['models_dir'], exist_ok=True)
     best_params = {}
     
     for is_class, prefix in [(True, "cls"), (False, "reg")]:
         logging.info(f"--- Training {prefix.upper()} Logic ---")
-        Xt, yt, Xv, yv = list(build_datasets(is_class))
+        Xt, yt, Xv, yv = list(build_datasets(is_class, seed))
         
         # 1. OPTUNA TUNING
         def objective(trial):
@@ -118,29 +125,29 @@ def main():
             xgb_sub = trial.suggest_float('xgb_sub', 0.5, 1.0)
             
             if is_class:
-                rf = RandomForestClassifier(n_estimators=rf_n, max_depth=rf_d, min_samples_leaf=rf_l, random_state=42, n_jobs=-1, class_weight='balanced')
+                rf = RandomForestClassifier(n_estimators=rf_n, max_depth=rf_d, min_samples_leaf=rf_l, random_state=seed, n_jobs=-1, class_weight='balanced')
                 rf.fit(Xt, yt)
                 # Optimize for balanced accuracy — correct objective for 22:1 imbalance
                 rf_score = balanced_accuracy_score(yv, rf.predict(Xv))
                 
                 pos_weight = float(np.sum(yt==0))/np.sum(yt==1) if np.sum(yt==1)>0 else 1.0
-                xgb = XGBClassifier(n_estimators=xgb_n, max_depth=xgb_d, learning_rate=xgb_lr, subsample=xgb_sub, random_state=42, scale_pos_weight=pos_weight)
+                xgb = XGBClassifier(n_estimators=xgb_n, max_depth=xgb_d, learning_rate=xgb_lr, subsample=xgb_sub, random_state=seed, scale_pos_weight=pos_weight)
                 xgb.fit(Xt, yt)
                 xgb_score = balanced_accuracy_score(yv, xgb.predict(Xv))
                 
                 return (rf_score + xgb_score) / 2.0
             else:
-                rf = RandomForestRegressor(n_estimators=rf_n, max_depth=rf_d, min_samples_leaf=rf_l, random_state=42, n_jobs=-1)
+                rf = RandomForestRegressor(n_estimators=rf_n, max_depth=rf_d, min_samples_leaf=rf_l, random_state=seed, n_jobs=-1)
                 rf.fit(Xt, yt)
                 rf_score = -mean_squared_error(yv, rf.predict(Xv))  # negative for maximization
                 
-                xgb = XGBRegressor(n_estimators=xgb_n, max_depth=xgb_d, learning_rate=xgb_lr, subsample=xgb_sub, random_state=42)
+                xgb = XGBRegressor(n_estimators=xgb_n, max_depth=xgb_d, learning_rate=xgb_lr, subsample=xgb_sub, random_state=seed)
                 xgb.fit(Xt, yt)
                 xgb_score = -mean_squared_error(yv, xgb.predict(Xv))
                 
                 return (rf_score + xgb_score) / 2.0
             
-        study = optuna.create_study(direction="maximize")
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed))
         study.optimize(objective, n_trials=config['training']['optuna_trials'])
         
         p = study.best_params
@@ -150,11 +157,11 @@ def main():
         pos_weight = float(np.sum(yt==0))/np.sum(yt==1) if is_class and np.sum(yt==1)>0 else 1.0
         
         if is_class:
-            rf = RandomForestClassifier(n_estimators=p['rf_n'], max_depth=p['rf_d'], min_samples_leaf=p['rf_l'], random_state=42, n_jobs=-1, class_weight='balanced')
-            xgb = XGBClassifier(n_estimators=p['xgb_n'], max_depth=p['xgb_d'], learning_rate=p['xgb_lr'], subsample=p['xgb_sub'], random_state=42, scale_pos_weight=pos_weight)
+            rf = RandomForestClassifier(n_estimators=p['rf_n'], max_depth=p['rf_d'], min_samples_leaf=p['rf_l'], random_state=seed, n_jobs=-1, class_weight='balanced')
+            xgb = XGBClassifier(n_estimators=p['xgb_n'], max_depth=p['xgb_d'], learning_rate=p['xgb_lr'], subsample=p['xgb_sub'], random_state=seed, scale_pos_weight=pos_weight)
         else:
-            rf = RandomForestRegressor(n_estimators=p['rf_n'], max_depth=p['rf_d'], min_samples_leaf=p['rf_l'], random_state=42, n_jobs=-1)
-            xgb = XGBRegressor(n_estimators=p['xgb_n'], max_depth=p['xgb_d'], learning_rate=p['xgb_lr'], subsample=p['xgb_sub'], random_state=42)
+            rf = RandomForestRegressor(n_estimators=p['rf_n'], max_depth=p['rf_d'], min_samples_leaf=p['rf_l'], random_state=seed, n_jobs=-1)
+            xgb = XGBRegressor(n_estimators=p['xgb_n'], max_depth=p['xgb_d'], learning_rate=p['xgb_lr'], subsample=p['xgb_sub'], random_state=seed)
             
         rf.fit(Xt, yt)
         xgb.fit(Xt, yt)
@@ -183,7 +190,7 @@ def main():
             _, val_loss, _, _ = train_asnn(Xt, yt, Xv, yv, is_class, config, lr, dropout)
             return val_loss
             
-        study_nn = optuna.create_study(direction="minimize")
+        study_nn = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=seed))
         study_nn.optimize(asnn_obj, n_trials=10) # 10 trials for NN specific
         best_nn_p = study_nn.best_params
         best_params[f"asnn_{prefix}"] = best_nn_p

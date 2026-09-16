@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it using the following metadata."
+title: "ASK1 Consensus Inhibitor Prediction Pipeline"
+authors:
+  - family-names: "Researcher"
+    given-names: "Firstname"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+version: 1.0.0
+date-released: 2026-09-16
+url: "https://github.com/noobggs19092006-source/Fibrosis_College"
+repository-code: "https://github.com/noobggs19092006-source/Fibrosis_College"
+license: MIT
+abstract: "A reproducible machine-learning pipeline for predicting apoptosis signal-regulating kinase 1 (ASK1) inhibition from molecular descriptors using Random Forest, XGBoost, and PyTorch ASNN models."

@@ -23,13 +23,14 @@ def identify_family(col_name):
 def process_mi_and_corr(X_train_imp, y_train_meta, config):
     mi_limits = config['preprocessing']['mi_top_n']
     corr_thresh = config['preprocessing']['correlation_threshold']
+    seed = config['pipeline'].get('global_seed', 42)
     
     # Calculate global Mutual Info
     logging.info("Calculating Mutual Information globally on X_train...")
-    mi_scores_reg = mutual_info_regression(X_train_imp, y_train_meta['pIC50'].values, random_state=42)
+    mi_scores_reg = mutual_info_regression(X_train_imp, y_train_meta['pIC50'].values, random_state=seed)
     
     if 'Label' in y_train_meta.columns:
-        mi_scores_cls = mutual_info_classif(X_train_imp, y_train_meta['Label'].values, random_state=42)
+        mi_scores_cls = mutual_info_classif(X_train_imp, y_train_meta['Label'].values, random_state=seed)
         mi_scores = (mi_scores_reg + mi_scores_cls) / 2.0
     else:
         mi_scores = mi_scores_reg

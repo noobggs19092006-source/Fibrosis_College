@@ -39,6 +39,9 @@ except ImportError:
     print("⚠️  tqdm not found (pip install tqdm). Using plain progress counter.")
     tqdm = None
 
+import yaml
+with open("config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 # ══════════════════════════════════════════════════════════════════════════════
 #  CONFIG — edit these as needed
 # ══════════════════════════════════════════════════════════════════════════════
@@ -46,7 +49,7 @@ CSV_PATH        = "phase5_rdkit_2D_descriptors_enriched.csv"   # path to your CS
 OUTPUT_DIR      = "./pdb_structures"  # relative path for cross-platform compatibility
 ENERGY_MINIMIZE = False   # True = MMFF94 minimization (recommended but slower)
 NUM_CONFORMERS  = 1       # 1 is fine for ETKDG; increase to 5 for better sampling
-RANDOM_SEED     = 42
+RANDOM_SEED     = config['pipeline'].get('global_seed', 42)
 ADD_HYDROGENS   = True    # include explicit H atoms in PDB (recommended for VMD)
 # ══════════════════════════════════════════════════════════════════════════════
 
