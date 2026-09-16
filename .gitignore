@@ -1,0 +1,29 @@
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local tooling and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Secrets and local configuration overrides
+.env
+.env.*
+!.env.example
+
+# Large generated artifacts already checked in remain shareable.
+# Review new generated exports before adding them.

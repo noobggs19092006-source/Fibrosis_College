@@ -1,0 +1,92 @@
+[
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "Accuracy (biased metric \u2014 see balanced accuracy)",
+        "value": 0.9740932642487047
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "Balanced Accuracy",
+        "value": 0.866891891891892
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "MCC",
+        "value": 0.69369537874768
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "ROC-AUC",
+        "value": 0.9283783783783783
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "F1-Macro",
+        "value": 0.8461661087199108
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "F1-Weighted",
+        "value": 0.9748201230869364
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "Precision (Label 0)",
+        "value": 0.6666666666666666
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "Recall (Label 0)",
+        "value": 0.75
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "Precision (Label 1)",
+        "value": 0.9891304347826086
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_CLS",
+        "metric": "Recall (Label 1)",
+        "value": 0.9837837837837838
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_REG",
+        "metric": "R2",
+        "value": 0.4021565830581836
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_REG",
+        "metric": "RMSE",
+        "value": 0.6530450246608689
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_REG",
+        "metric": "MAE",
+        "value": 0.49308827788378456
+    },
+    {
+        "split": "Y-Rand",
+        "model": "RFR_REG",
+        "metric": "Mean_R2",
+        "value": -0.1424241324861377
+    },
+    {
+        "split": "Test",
+        "model": "Consensus_REG",
+        "metric": "AD_Inside_Pct",
+        "value": 96.37305699481865
+    }
+]

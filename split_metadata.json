@@ -1,0 +1,14 @@
+{
+    "seed_value": 42,
+    "split_mechanism": "Stratified Scaffold Split (RDKit)",
+    "splits": {
+        "train": 1152,
+        "val": 285,
+        "test": 193
+    },
+    "label_counts": {
+        "train_inactive": 53,
+        "val_inactive": 9,
+        "test_inactive": 8
+    }
+}

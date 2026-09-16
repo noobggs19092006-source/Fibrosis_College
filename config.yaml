@@ -1,0 +1,21 @@
+pipeline:
+  global_seed: 42
+  input_csv: "phase5_rdkit_2D_descriptors_enriched.csv"
+  log_file: "pipeline.log"
+  failed_conformer_log: "failed_3d_extraction.csv"
+  split_metadata: "split_metadata.json"
+  audit_csv: "preprocessing_audit.csv"
+  models_dir: "models"
+  plots_dir: "validation_plots"
+
+preprocessing:
+  mi_top_n:
+    2D: 175
+  correlation_threshold: 0.90
+
+training:
+  optuna_trials: 40
+  asnn:
+    tau_default: 0.1
+  early_stopping_patience: 15
+  max_epochs: 200
