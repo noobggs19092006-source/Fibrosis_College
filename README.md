@@ -37,6 +37,16 @@ python run_pipeline.py
 
 The input file and output locations are configured in `config.yaml`. The default input is `phase5_rdkit_2D_descriptors_enriched.csv` and must contain at least `canonical_smiles`, `molecule_chembl_id`, `Label`, and `pIC50`.
 
+### 3. Generate Publication Figures
+
+To generate the 20 black-and-white figures used in the manuscript, run the diagram and plotting scripts after a successful pipeline run:
+
+```bash
+python generate_diagrams.py
+python generate_data_plots.py
+```
+All figures will be output to the `publication_figures/` directory.
+
 ## Repository layout
 
 - `01_split_and_extract_3d.py` - creates stratified scaffold-based train/validation/test splits.
@@ -44,9 +54,14 @@ The input file and output locations are configured in `config.yaml`. The default
 - `03_train_models.py` - tunes and trains the ensemble and ASNN models.
 - `04_validations.py` - produces evaluation metrics, plots, and SHAP explanations.
 - `run_pipeline.py` - runs all four phases in order.
+- `models.py` - centralized class architectures (e.g., ASNN).
+- `generate_diagrams.py` - programmatic generation of flowchart and schematic architecture figures for publication.
+- `generate_data_plots.py` - extraction and generation of all data-driven evaluation plots for publication.
+- `generate_3d_pdbs.py` - utility to generate initial 3D conformations via RDKit ETKDG.
 - `models/` - trained model artifacts and preprocessing objects.
 - `pdb_structures/` - generated molecular structure files.
 - `validation_plots/` - validation visualizations.
+- `publication_figures/` - directory containing the 20 generated black-and-white publication figures.
 
 The checked-in CSV, model, structure, and plot artifacts make the current project state available to collaborators. Running the pipeline may regenerate them.
 
