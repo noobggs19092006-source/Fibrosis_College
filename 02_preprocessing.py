@@ -5,7 +5,7 @@ import logging
 import pandas as pd
 import numpy as np
 from sklearn.impute import SimpleImputer
-from sklearn.feature_selection import VarianceThreshold, mutual_info_regression
+from sklearn.feature_selection import VarianceThreshold, mutual_info_regression, mutual_info_classif
 from sklearn.preprocessing import StandardScaler
 import joblib
 import warnings
@@ -20,13 +20,20 @@ def identify_family(col_name):
     if col_name.startswith('AUTOCORR3D_'): return 'AUTOCORR3D'
     return '2D'
 
-def process_mi_and_corr(X_train_imp, y_train_target, config):
+def process_mi_and_corr(X_train_imp, y_train_meta, config):
     mi_limits = config['preprocessing']['mi_top_n']
     corr_thresh = config['preprocessing']['correlation_threshold']
     
     # Calculate global Mutual Info
     logging.info("Calculating Mutual Information globally on X_train...")
-    mi_scores = mutual_info_regression(X_train_imp, y_train_target, random_state=42)
+    mi_scores_reg = mutual_info_regression(X_train_imp, y_train_meta['pIC50'].values, random_state=42)
+    
+    if 'Label' in y_train_meta.columns:
+        mi_scores_cls = mutual_info_classif(X_train_imp, y_train_meta['Label'].values, random_state=42)
+        mi_scores = (mi_scores_reg + mi_scores_cls) / 2.0
+    else:
+        mi_scores = mi_scores_reg
+        
     mi_series = pd.Series(mi_scores, index=X_train_imp.columns)
     
     families = { "WHIM": [], "GETAWAY": [], "RDF": [], "MORSE": [], "AUTOCORR3D": [], "2D": [] }
@@ -108,8 +115,7 @@ def main():
     audit_log.append({"Phase": "Variance Threshold", "Train Features": X_train_var.shape[1], "Val Features": X_val_var.shape[1], "Test Features": X_test_var.shape[1]})
 
     # 3. MI & Correlation Filtering (Fitted strictly on train target)
-    y_train_target = y_train_meta['pIC50'].values
-    kept_mi_corr_cols = process_mi_and_corr(X_train_var, y_train_target, config)
+    kept_mi_corr_cols = process_mi_and_corr(X_train_var, y_train_meta, config)
     
     X_train_corr = X_train_var[kept_mi_corr_cols]
     X_val_corr = X_val_var[kept_mi_corr_cols]

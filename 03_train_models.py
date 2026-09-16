@@ -27,60 +27,7 @@ try:
 except ImportError:
     SMOTETomek = None
 
-class ASNN(nn.Module):
-    def __init__(self, input_dim, dropout, is_classification, tau=0.1):
-        super(ASNN, self).__init__()
-        self.is_classification = is_classification
-        self.tau = tau
-        self.embedding_net = nn.Sequential(
-            nn.Linear(input_dim, 256),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(128, 64),
-            nn.ReLU()
-        )
-        self.head = nn.Linear(64, 1)
-        self.memory_embeddings = None
-        self.memory_labels = None
-        self.eval_mode_memory_active = False
-        
-    def forward(self, x):
-        emb = self.embedding_net(x)
-        out = self.head(emb)
-        
-        if self.is_classification:
-            # return raw logits here, nn.BCEWithLogitsLoss will handle it during training
-            base_pred = out
-        else:
-            base_pred = out
-            
-        if self.eval_mode_memory_active and self.memory_embeddings is not None and not self.training:
-            emb_norm = torch.nn.functional.normalize(emb, p=2, dim=1)
-            mem_norm = torch.nn.functional.normalize(self.memory_embeddings, p=2, dim=1)
-            sim = torch.mm(emb_norm, mem_norm.t()) # shape: (batch, num_memory)
-            weights = torch.nn.functional.softmax(sim / self.tau, dim=1)
-            mem_pred = torch.mm(weights, self.memory_labels)
-            
-            # Blend
-            if self.is_classification:
-                base_prob = torch.sigmoid(base_pred)
-                blended = (base_prob + mem_pred) / 2.0
-                return blended # returning blended probabilities
-            else:
-                blended = (base_pred + mem_pred) / 2.0
-                return blended
-                
-        return base_pred
-
-    def populate_memory(self, train_x, train_y):
-        self.eval()
-        with torch.no_grad():
-            self.memory_embeddings = self.embedding_net(train_x)
-            self.memory_labels = train_y
-        self.eval_mode_memory_active = True
+from models import ASNN
 
 def train_asnn(X_train, y_train, X_val, y_val, is_class, config, lr, dropout):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -175,12 +122,23 @@ def main():
                 rf.fit(Xt, yt)
                 # Optimize for balanced accuracy — correct objective for 22:1 imbalance
                 rf_score = balanced_accuracy_score(yv, rf.predict(Xv))
+                
+                pos_weight = float(np.sum(yt==0))/np.sum(yt==1) if np.sum(yt==1)>0 else 1.0
+                xgb = XGBClassifier(n_estimators=xgb_n, max_depth=xgb_d, learning_rate=xgb_lr, subsample=xgb_sub, random_state=42, scale_pos_weight=pos_weight)
+                xgb.fit(Xt, yt)
+                xgb_score = balanced_accuracy_score(yv, xgb.predict(Xv))
+                
+                return (rf_score + xgb_score) / 2.0
             else:
                 rf = RandomForestRegressor(n_estimators=rf_n, max_depth=rf_d, min_samples_leaf=rf_l, random_state=42, n_jobs=-1)
                 rf.fit(Xt, yt)
                 rf_score = -mean_squared_error(yv, rf.predict(Xv))  # negative for maximization
                 
-            return rf_score
+                xgb = XGBRegressor(n_estimators=xgb_n, max_depth=xgb_d, learning_rate=xgb_lr, subsample=xgb_sub, random_state=42)
+                xgb.fit(Xt, yt)
+                xgb_score = -mean_squared_error(yv, xgb.predict(Xv))
+                
+                return (rf_score + xgb_score) / 2.0
             
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=config['training']['optuna_trials'])

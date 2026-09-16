@@ -43,7 +43,7 @@ except ImportError:
 #  CONFIG — edit these as needed
 # ══════════════════════════════════════════════════════════════════════════════
 CSV_PATH        = "phase5_rdkit_2D_descriptors_enriched.csv"   # path to your CSV
-OUTPUT_DIR      = "/media/aryan-k-k/2TB_KK/Fibrosis_College/pdb_structures"  # external drive
+OUTPUT_DIR      = "./pdb_structures"  # relative path for cross-platform compatibility
 ENERGY_MINIMIZE = False   # True = MMFF94 minimization (recommended but slower)
 NUM_CONFORMERS  = 1       # 1 is fine for ETKDG; increase to 5 for better sampling
 RANDOM_SEED     = 42

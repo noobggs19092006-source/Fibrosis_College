@@ -20,39 +20,7 @@ except ImportError:
     logging.error("SHAP is missing.")
     sys.exit("FATAL: SHAP is non-optional. Run: pip install shap")
 
-class ASNN(nn.Module):
-    def __init__(self, input_dim, dropout, is_classification, tau=0.1):
-        super(ASNN, self).__init__()
-        self.is_classification = is_classification
-        self.tau = tau
-        self.embedding_net = nn.Sequential(
-            nn.Linear(input_dim, 256), nn.ReLU(), nn.Dropout(dropout),
-            nn.Linear(256, 128), nn.ReLU(), nn.Dropout(dropout),
-            nn.Linear(128, 64), nn.ReLU()
-        )
-        self.head = nn.Linear(64, 1)
-        self.memory_embeddings = None
-        self.memory_labels = None
-        self.eval_mode_memory_active = False
-        
-    def forward(self, x):
-        emb = self.embedding_net(x)
-        out = self.head(emb)
-        if self.is_classification: base_pred = out
-        else: base_pred = out
-            
-        if self.eval_mode_memory_active and self.memory_embeddings is not None and not self.training:
-            emb_norm = torch.nn.functional.normalize(emb, p=2, dim=1)
-            mem_norm = torch.nn.functional.normalize(self.memory_embeddings, p=2, dim=1)
-            sim = torch.mm(emb_norm, mem_norm.t())
-            weights = torch.nn.functional.softmax(sim / self.tau, dim=1)
-            mem_pred = torch.mm(weights, self.memory_labels)
-            
-            if self.is_classification:
-                return (torch.sigmoid(base_pred) + mem_pred) / 2.0
-            else:
-                return (base_pred + mem_pred) / 2.0
-        return base_pred
+from models import ASNN
 
 def get_consensus_pred(X, rf, xgb, asnn_model, is_class, threshold=0.5):
     rf_pred = rf.predict_proba(X)[:, 1] if is_class else rf.predict(X)
@@ -104,7 +72,7 @@ def do_shap_logic(model, X_test, preds, prefix, config):
     
     plt.figure()
     shap.summary_plot(shap_values, X_test, max_display=20, show=False)
-    plt.savefig(f"{plots_dir}/shap_beeswarm_{prefix}.png", bbox_inches='tight')
+    plt.savefig(f"{plots_dir}/shap_beeswarm_rf_{prefix}.png", bbox_inches='tight')
     plt.close()
     
     top_3_idx = np.argsort(preds)[::-1][:3]
@@ -114,7 +82,7 @@ def do_shap_logic(model, X_test, preds, prefix, config):
             for i, idx in enumerate(top_3_idx):
                 plt.figure()
                 shap.waterfall_plot(shap.Explanation(values=shap_values[idx], base_values=ev, data=X_test[idx]), show=False)
-                plt.savefig(f"{plots_dir}/shap_waterfall_{prefix}_Top{i+1}.png", bbox_inches='tight')
+                plt.savefig(f"{plots_dir}/shap_waterfall_rf_{prefix}_Top{i+1}.png", bbox_inches='tight')
                 plt.close()
     except Exception as e:
         logging.warning(f"Waterfall plot failed: {e}")
